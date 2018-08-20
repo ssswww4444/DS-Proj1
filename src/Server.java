@@ -146,9 +146,15 @@ public class Server {
 			BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
 
 			try {
+				
+				out.write("Hey!\n");
+				out.flush();
+				
 				String clientMsg = null;
 				
 				System.out.println("reached here");
+				
+				System.out.println(in.readLine());
 
 				// Keep reading the client's message
 				while ((clientMsg = in.readLine()) != null) {
@@ -180,26 +186,25 @@ public class Server {
 	private synchronized static String accessDictionary(String clientMsg) {
 		String[] msg = clientMsg.split(",");
 		String word = msg[1];
-		String meaning = msg[2];
 		
 		// Three actions of the client
 		switch(msg[0]) {
 			case "add":
+				String meaning = msg[2];
 				if (dictionary.containsKey(word)) {
-					return "Failed: Unable to add the word (already exists)";
+					return "Error: Unable to add the word (already exists)";
 				}
 				dictionary.put(word, meaning);
-				return "Added vocab successfully";
+				return "Added word successfully";
 			case "remove":
-				word = msg[1];
 				if (!dictionary.containsKey(word)) {
-					return "Failed: The vocab does not exist in the dictionary";
+					return "Error: The word does not exist in the dictionary";
 				}
 				dictionary.remove(word);
-				return "Removed vocab successfully";
+				return "Removed word successfully";
 			case "search":
 				if (!dictionary.containsKey(word)) {
-					return "Failed: The vocab does not exist in the dictionary";
+					return "Error: The word does not exist in the dictionary";
 				}
 				return dictionary.get(word);  // return meaning
 		}
