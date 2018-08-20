@@ -35,17 +35,22 @@ public class Server {
 
 		Thread mainThread = new Thread(() -> serverMainThread(serverSocket));
 		mainThread.start();
+		
+		Thread cmdThread = new Thread(() -> cmdThread());
+		cmdThread.start();
+	}
 
+	private static void cmdThread() {
 		// Check if exiting the server
 		while (true) {
 			String msg = null;
 			while ((msg = scan.nextLine()) != null) {
-				System.out.println("message: " + msg);
+				System.out.println("cmd message: " + msg);
 				if (msg.equals("exit")) {
-					System.out.println("Storing the dictionary file...");
 					writeDictionaryFile();
 					System.out.println("Exit from the server...");
 					// should stop all threads
+					scan.close();
 					return;
 				}
 			}
@@ -65,9 +70,9 @@ public class Server {
 				counter++;
 				System.out.println("Client " + counter + ": Applying for connection!");
 
-				// Start a new thread to serve the client (lambda expression to run serveClient
-				// method)
-				Thread t = new Thread(() -> serveClient(clientSocket));
+				// Start a new thread to serve the client 
+				// (lambda expression to implement runnable interface with a serveClient method)
+				Thread t = new Thread(() -> serveClient(clientSocket));  // (lambda parameter -> lambda body)
 				t.start();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -141,18 +146,20 @@ public class Server {
 			BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
 
 			try {
-				// Keep reading the client's message
 				String clientMsg = null;
+				
+				System.out.println("reached here");
 
 				// Keep reading the client's message
 				while ((clientMsg = in.readLine()) != null) {
 					System.out.println("Message from client  + " + clientMsg);
-					out.write("Server Ack " + clientMsg + "\n");
+					out.write(accessDictionary(clientMsg) + "\n");  // get response to the client
 					out.flush();
 					System.out.println("Response sent");
 				}
 			} catch (SocketException e) {
-				System.out.println("closed...");
+				System.out.println("client socket closed...");
+				return;
 			}
 
 			// close streams
@@ -165,5 +172,37 @@ public class Server {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	/**
+	 * Synchronized (exclusive) access to the dictionary (HashMap) for the threads
+	 */
+	private synchronized static String accessDictionary(String clientMsg) {
+		String[] msg = clientMsg.split(",");
+		String word = msg[1];
+		String meaning = msg[2];
+		
+		// Three actions of the client
+		switch(msg[0]) {
+			case "add":
+				if (dictionary.containsKey(word)) {
+					return "Failed: Unable to add the word (already exists)";
+				}
+				dictionary.put(word, meaning);
+				return "Added vocab successfully";
+			case "remove":
+				word = msg[1];
+				if (!dictionary.containsKey(word)) {
+					return "Failed: The vocab does not exist in the dictionary";
+				}
+				dictionary.remove(word);
+				return "Removed vocab successfully";
+			case "search":
+				if (!dictionary.containsKey(word)) {
+					return "Failed: The vocab does not exist in the dictionary";
+				}
+				return dictionary.get(word);  // return meaning
+		}
+		return "";
 	}
 }
