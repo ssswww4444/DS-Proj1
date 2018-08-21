@@ -7,10 +7,13 @@
 
 import java.net.*;
 import javax.swing.*;
-
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.*;
 
 public class Client {
@@ -28,8 +31,15 @@ public class Client {
 
 	// For GUI
 	private static GraphicsConfiguration gc;
+	
+	// Jframe
+	private static JFrame frame;
 
 	public static void main(String args[]) throws IOException {
+
+		GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		GraphicsDevice gs = ge.getDefaultScreenDevice();
+		gc = gs.getDefaultConfiguration();
 
 		// Read command line arguments
 		try {
@@ -48,11 +58,6 @@ public class Client {
 
 		// Enable GUI for the client
 		setGUI();
-
-//		// close connection and streams
-//		in.close();
-//		out.close();
-//		clientSocket.close();
 	}
 
 	/**
@@ -60,15 +65,29 @@ public class Client {
 	 */
 	private static void setGUI() {
 		// Create new frame
-		JFrame frame = new JFrame(gc);
+		frame = new JFrame(gc);
 
 		// Set close operation
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		// Size the frame
-		frame.setSize(300, 300);
+		// Clean up on exit
+		frame.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				try {
+					// close connection and streams
+					in.close();
+					out.close();
+					clientSocket.close();
+				} catch (IOException ex) {
+					ex.printStackTrace();
+				}
+
+			}
+		});
+
+		// Set layout
 		frame.setLayout(new GridBagLayout());
-		frame.setLocation(500, 300);
 
 		// Constraints
 		GridBagConstraints c = new GridBagConstraints();
@@ -83,6 +102,10 @@ public class Client {
 		// resize the frame
 		frame.pack();
 		frame.setResizable(false);
+
+		// set frame location
+		frame.setLocation(gc.getBounds().width / 2 - frame.getWidth() / 2,
+				gc.getBounds().height / 2 - frame.getHeight() / 2); // at center
 
 		// Enable the GUI
 		frame.setVisible(true);
@@ -100,15 +123,6 @@ public class Client {
 		c.gridx = 0;
 		c.gridy = 0;
 		mainPanel.add(actionLabel, c);
-
-		// Create the drop down list to select the actions
-		String[] actions = new String[] { "add", "search", "remove" };
-		JComboBox<String> actionBox = new JComboBox<String>(actions);
-		actionBox.setSize(30, 10);
-		c.anchor = GridBagConstraints.LINE_START;
-		c.gridx = 1;
-		c.gridy = 0;
-		mainPanel.add(actionBox, c);
 
 		// Create the word label
 		JLabel wordLabel = new JLabel("Word: ");
@@ -142,6 +156,32 @@ public class Client {
 		c.gridx = 1;
 		c.gridy = 2;
 		mainPanel.add(meaningField, c);
+		
+		// Create the drop down list to select the actions
+		String[] actions = new String[] { "add", "search", "remove" };
+		JComboBox<String> actionBox = new JComboBox<String>(actions);
+//		actionBox.addActionListener(new ActionListener() {
+//            public void actionPerformed(ActionEvent event) {
+//                // Get the source of the component, which is our ComboBox
+//                JComboBox<String> comboBox = (JComboBox<String>) event.getSource();
+//                switch((String) comboBox.getSelectedItem()) {
+//                	case "add":
+//                		meaningLabel.setVisible(true);
+//                		meaningField.setVisible(true);
+//                	case "remove":
+//                		meaningLabel.setVisible(false);
+//                		meaningField.setVisible(false);
+//                	case "search":
+//                		meaningLabel.setVisible(false);
+//                		meaningField.setVisible(false);
+//                }
+//            }
+//        });
+		actionBox.setSize(30, 10);
+		c.anchor = GridBagConstraints.LINE_START;
+		c.gridx = 1;
+		c.gridy = 0;
+		mainPanel.add(actionBox, c);
 
 		// Create the response label
 		JLabel responseLabel = new JLabel("Response: ");
@@ -176,10 +216,10 @@ public class Client {
 
 				// Check message valid
 				if (word.length() == 0) { // empty
-					responseArea.setText(responseArea.getText() + "Error: Word cannot be empty\n");
+					responseArea.setText(responseArea.getText() + "ERROR: Word cannot be empty\n");
 					return;
 				} else if (type.equals("add") && (meaning.length() == 0)) {
-					responseArea.setText(responseArea.getText() + "Error: Meaning cannot be empty for 'add' action\n");
+					responseArea.setText(responseArea.getText() + "ERROR: Meaning cannot be empty for 'add' action\n");
 					return;
 				}
 
@@ -202,12 +242,12 @@ public class Client {
 			// Send request to server
 			out.write(msg + "\n");
 			out.flush();
-			System.out.println("message sent");
 
 			// Receive the reply from the server by reading from the socket input stream
-			String response = in.readLine(); // This method blocks until there is something to read from the input stream
+			String response = in.readLine(); // This method blocks until there is something to read from the input
+												// stream
 
-			return "Response: " + response;
+			return "Server: " + response;
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

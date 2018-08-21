@@ -16,7 +16,7 @@ public class Server {
 	private static int counter = 0; // number of clients connected
 	private static HashMap<String, String> dictionary; // the dictionary of the server
 	private static Scanner scan = new Scanner(System.in);
-//	private static boolean closeServer = false;
+	private static boolean exitServer = false;  // Check if exiting the server, init as false
 
 	public static void main(String args[]) throws IOException {
 
@@ -42,12 +42,12 @@ public class Server {
 		while (true) {
 			String msg = null;
 			while ((msg = scan.nextLine()) != null) {
-				System.out.println("cmd message: " + msg);
 				if (msg.equals("exit")) {
 					writeDictionaryFile();
 					System.out.println("Exit from the server...");
 					// close scanner
 					scan.close();
+					exitServer = true;  // inform the serve threads to stop
 					return;
 				}
 			}
@@ -57,9 +57,9 @@ public class Server {
 	/**
 	 * Main thread of the server to serve the clients
 	 */
-	private static Object serverMainThread(ServerSocket serverSocket) {
-		// Wait for connections from clients
-		while (true) {
+	private static void serverMainThread(ServerSocket serverSocket) {
+		// Keep waiting for connections from clients until server exit
+		while (!exitServer) {
 			// Connect and get client socket
 			Socket clientSocket;
 			try {
@@ -146,16 +146,10 @@ public class Server {
 
 				String clientMsg = null;
 
-				System.out.println("reached here");
-
 				// Keep reading the client's message
-				while(!in.ready());
-				System.out.println("ready!");
-				while ((clientMsg = in.readLine()) != null) {   // ******** Stuck at here ***********
-					System.out.println("Message from client " + clientMsg);
-					out.write(accessDictionary(clientMsg) + "\n"); // get response to the client
+				while (!exitServer && ((clientMsg = in.readLine()) != null)) {
+					out.write(accessDictionary(clientMsg) + "\n"); // send response to the client
 					out.flush();
-					System.out.println("Response sent");
 				}
 
 			} catch (SocketException e) {
@@ -176,7 +170,7 @@ public class Server {
 	/**
 	 * Synchronized (exclusive) access to the dictionary (HashMap) for the threads
 	 */
-	private static String accessDictionary(String clientMsg) {
+	private static synchronized String accessDictionary(String clientMsg) {
 		String[] msg = clientMsg.split(",");
 		String word = msg[1];
 
@@ -185,19 +179,19 @@ public class Server {
 		case "add":
 			String meaning = msg[2];
 			if (dictionary.containsKey(word)) {
-				return "Error: The word already exists in the dictionary";
+				return "ERROR: The word already exists in the dictionary";
 			}
 			dictionary.put(word, meaning);
 			return "Added word '" + word + "' successfully";
 		case "remove":
 			if (!dictionary.containsKey(word)) {
-				return "Error: The word '"+ word + "' does not exist in the dictionary";
+				return "ERROR: Cannot find the '"+ word + "' in the dictionary";
 			}
 			dictionary.remove(word);
 			return "Removed word '" + word + "' successfully";
 		case "search":
 			if (!dictionary.containsKey(word)) {
-				return "Error: The word '"+ word + "' does not exist in the dictionary";
+				return "ERROR: Cannot find the '"+ word + "' in the dictionary";
 			}
 			return "Meaning: " + dictionary.get(word); // return meaning
 		}
