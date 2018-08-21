@@ -6,19 +6,9 @@
  */
 
 import java.net.*;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import java.awt.FlowLayout;
-import java.awt.GraphicsConfiguration;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
+import javax.swing.*;
+
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
@@ -210,13 +200,12 @@ public class Client {
 	private static String sendRequest(String msg) {
 		try {
 			// Send request to server
-			out.write(msg);
+			out.write(msg + "\n");
 			out.flush();
 			System.out.println("message sent");
 
 			// Receive the reply from the server by reading from the socket input stream
-			String response = in.readLine(); // This method blocks until there is something to read from the input
-												// stream
+			String response = in.readLine(); // This method blocks until there is something to read from the input stream
 
 			return "Response: " + response;
 		} catch (UnsupportedEncodingException e) {

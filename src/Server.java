@@ -16,6 +16,7 @@ public class Server {
 	private static int counter = 0; // number of clients connected
 	private static HashMap<String, String> dictionary; // the dictionary of the server
 	private static Scanner scan = new Scanner(System.in);
+//	private static boolean closeServer = false;
 
 	public static void main(String args[]) throws IOException {
 
@@ -33,14 +34,10 @@ public class Server {
 		// register a new server socket to the port
 		ServerSocket serverSocket = new ServerSocket(port);
 
+		// Thread to serve clients
 		Thread mainThread = new Thread(() -> serverMainThread(serverSocket));
 		mainThread.start();
-		
-		Thread cmdThread = new Thread(() -> cmdThread());
-		cmdThread.start();
-	}
 
-	private static void cmdThread() {
 		// Check if exiting the server
 		while (true) {
 			String msg = null;
@@ -49,7 +46,7 @@ public class Server {
 				if (msg.equals("exit")) {
 					writeDictionaryFile();
 					System.out.println("Exit from the server...");
-					// should stop all threads
+					// close scanner
 					scan.close();
 					return;
 				}
@@ -70,9 +67,9 @@ public class Server {
 				counter++;
 				System.out.println("Client " + counter + ": Applying for connection!");
 
-				// Start a new thread to serve the client 
+				// Start a new thread to serve the client
 				// (lambda expression to implement runnable interface with a serveClient method)
-				Thread t = new Thread(() -> serveClient(clientSocket));  // (lambda parameter -> lambda body)
+				Thread t = new Thread(() -> serveClient(clientSocket)); // (lambda parameter -> lambda body)
 				t.start();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -144,36 +141,32 @@ public class Server {
 			// Get communication input/output streams associated with the client socket
 			BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
 			BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
-
+			
 			try {
-				
-				out.write("Hey!\n");
-				out.flush();
-				
+
 				String clientMsg = null;
-				
+
 				System.out.println("reached here");
-				
-				System.out.println(in.readLine());
 
 				// Keep reading the client's message
-				while ((clientMsg = in.readLine()) != null) {
-					System.out.println("Message from client  + " + clientMsg);
-					out.write(accessDictionary(clientMsg) + "\n");  // get response to the client
+				while(!in.ready());
+				System.out.println("ready!");
+				while ((clientMsg = in.readLine()) != null) {   // ******** Stuck at here ***********
+					System.out.println("Message from client " + clientMsg);
+					out.write(accessDictionary(clientMsg) + "\n"); // get response to the client
 					out.flush();
 					System.out.println("Response sent");
 				}
+
 			} catch (SocketException e) {
+				// client socket closed
+			} finally {
 				System.out.println("client socket closed...");
-				return;
+				// close streams and client socket
+				in.close();
+				out.close();
+				clientSocket.close();
 			}
-
-			// close streams
-			in.close();
-			out.close();
-
-			// close client socket only, not close server socket
-			clientSocket.close();
 
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -183,30 +176,30 @@ public class Server {
 	/**
 	 * Synchronized (exclusive) access to the dictionary (HashMap) for the threads
 	 */
-	private synchronized static String accessDictionary(String clientMsg) {
+	private static String accessDictionary(String clientMsg) {
 		String[] msg = clientMsg.split(",");
 		String word = msg[1];
-		
+
 		// Three actions of the client
-		switch(msg[0]) {
-			case "add":
-				String meaning = msg[2];
-				if (dictionary.containsKey(word)) {
-					return "Error: Unable to add the word (already exists)";
-				}
-				dictionary.put(word, meaning);
-				return "Added word successfully";
-			case "remove":
-				if (!dictionary.containsKey(word)) {
-					return "Error: The word does not exist in the dictionary";
-				}
-				dictionary.remove(word);
-				return "Removed word successfully";
-			case "search":
-				if (!dictionary.containsKey(word)) {
-					return "Error: The word does not exist in the dictionary";
-				}
-				return dictionary.get(word);  // return meaning
+		switch (msg[0]) {
+		case "add":
+			String meaning = msg[2];
+			if (dictionary.containsKey(word)) {
+				return "Error: The word already exists in the dictionary";
+			}
+			dictionary.put(word, meaning);
+			return "Added word '" + word + "' successfully";
+		case "remove":
+			if (!dictionary.containsKey(word)) {
+				return "Error: The word '"+ word + "' does not exist in the dictionary";
+			}
+			dictionary.remove(word);
+			return "Removed word '" + word + "' successfully";
+		case "search":
+			if (!dictionary.containsKey(word)) {
+				return "Error: The word '"+ word + "' does not exist in the dictionary";
+			}
+			return "Meaning: " + dictionary.get(word); // return meaning
 		}
 		return "";
 	}
