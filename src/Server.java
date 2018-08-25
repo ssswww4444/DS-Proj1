@@ -160,6 +160,7 @@ public class Server {
 				in.close();
 				out.close();
 				clientSocket.close();
+				counter--;
 			}
 
 		} catch (IOException e) {
