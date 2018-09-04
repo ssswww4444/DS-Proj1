@@ -6,12 +6,8 @@
  */
 
 import java.net.*;
-import javax.swing.*;
-import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.*;
@@ -28,18 +24,12 @@ public class Client {
 	// Streams
 	private static BufferedReader in;
 	private static BufferedWriter out;
-
-	// For GUI
-	private static GraphicsConfiguration gc;
 	
-	// Jframe
-	private static JFrame frame;
+	// Frame
+	private static ClientFrame clientFrame;
 
+	/** Main method **/
 	public static void main(String args[]) throws IOException {
-
-		GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-		GraphicsDevice gs = ge.getDefaultScreenDevice();
-		gc = gs.getDefaultConfiguration();
 
 		// Read command line arguments
 		try {
@@ -49,194 +39,70 @@ public class Client {
 			return;
 		}
 
-		// register a new client socket connect to server at the port
-		clientSocket = new Socket(ip, port);
+		// Connect to server
+		try {
+			connectToServer();
+		} catch (UnknownHostException e) {
+			System.out.println("Unknown host, try another ip & port");
+			return;
+		} catch (IOException e2) {
+			e2.printStackTrace();
+			return;
+		}
 
-		// Get communication input/output streams associated with the socket
-		in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
-		out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
-
-		// Enable GUI for the client
-		setGUI();
-	}
-
-	/**
-	 * Initialize the GUI for clients to add/remove/search words
-	 */
-	private static void setGUI() {
-		// Create new frame
-		frame = new JFrame(gc);
-
-		// Set close operation
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-		// Clean up on exit
-		frame.addWindowListener(new WindowAdapter() {
-			@Override
-			public void windowClosing(WindowEvent e) {
-				try {
-					// close connection and streams
-					in.close();
-					out.close();
-					clientSocket.close();
-				} catch (IOException ex) {
-					ex.printStackTrace();
-				}
-
-			}
-		});
-
-		// Set layout
-		frame.setLayout(new GridBagLayout());
-
-		// Constraints
-		GridBagConstraints c = new GridBagConstraints();
-
-		// Main panel of the window
-		c.gridx = 0;
-		c.gridy = 0;
-		JPanel mainPanel = new JPanel(new GridBagLayout());
-		frame.add(mainPanel);
-		setMainPanel(mainPanel);
-
-		// resize the frame
-		frame.pack();
-		frame.setResizable(false);
-
-		// set frame location
-		frame.setLocation(gc.getBounds().width / 2 - frame.getWidth() / 2,
-				gc.getBounds().height / 2 - frame.getHeight() / 2); // at center
-
-		// Enable the GUI
-		frame.setVisible(true);
-
-	}
-
-	private static void setMainPanel(JPanel mainPanel) {
-		// Constraints
-		GridBagConstraints c = new GridBagConstraints();
-
-		// Create the action label
-		JLabel actionLabel = new JLabel("Action: ");
-		c = new GridBagConstraints();
-		c.anchor = GridBagConstraints.LINE_END;
-		c.gridx = 0;
-		c.gridy = 0;
-		mainPanel.add(actionLabel, c);
-
-		// Create the word label
-		JLabel wordLabel = new JLabel("Word: ");
-		c = new GridBagConstraints();
-		c.anchor = GridBagConstraints.LINE_END;
-		c.gridx = 0;
-		c.gridy = 1;
-		mainPanel.add(wordLabel, c);
-
-		// Create the text field for word
-		JTextField wordField = new JTextField("", 10);
-		c = new GridBagConstraints();
-		c.anchor = GridBagConstraints.LINE_START;
-		c.gridx = 1;
-		c.gridy = 1;
-		mainPanel.add(wordField, c);
-
-		// Create the meaning label
-		JLabel meaningLabel = new JLabel("Meaning: ");
-		c = new GridBagConstraints();
-		c.anchor = GridBagConstraints.LINE_END;
-		c.gridx = 0;
-		c.gridy = 2;
-		mainPanel.add(meaningLabel, c);
-
-		// Create the text field for meaning
-		JTextField meaningField = new JTextField("", 20);
-		c = new GridBagConstraints();
-		c.fill = GridBagConstraints.VERTICAL;
-		c.anchor = GridBagConstraints.LINE_START;
-		c.gridx = 1;
-		c.gridy = 2;
-		mainPanel.add(meaningField, c);
+		// Create client frame
+		clientFrame = new ClientFrame();
 		
-		// Create the drop down list to select the actions
-		String[] actions = new String[] { "add", "search", "remove" };
-		JComboBox<String> actionBox = new JComboBox<String>(actions);
-//		actionBox.addActionListener(new ActionListener() {
-//            public void actionPerformed(ActionEvent event) {
-//                // Get the source of the component, which is our ComboBox
-//                JComboBox<String> comboBox = (JComboBox<String>) event.getSource();
-//                switch((String) comboBox.getSelectedItem()) {
-//                	case "add":
-//                		meaningLabel.setVisible(true);
-//                		meaningField.setVisible(true);
-//                	case "remove":
-//                		meaningLabel.setVisible(false);
-//                		meaningField.setVisible(false);
-//                	case "search":
-//                		meaningLabel.setVisible(false);
-//                		meaningField.setVisible(false);
-//                }
-//            }
-//        });
-		actionBox.setSize(30, 10);
-		c.anchor = GridBagConstraints.LINE_START;
-		c.gridx = 1;
-		c.gridy = 0;
-		mainPanel.add(actionBox, c);
-
-		// Create the response label
-		JLabel responseLabel = new JLabel("Response: ");
-		c = new GridBagConstraints();
-		c.anchor = GridBagConstraints.LINE_END;
-		c.gridx = 0;
-		c.gridy = 3;
-		mainPanel.add(responseLabel, c);
-
-		// Create the response text field
-		JTextArea responseArea = new JTextArea("");
-		JScrollPane scrollPane = new JScrollPane(responseArea);
-		responseArea.setColumns(40);
-		responseArea.setRows(20);
-		responseArea.setEditable(false);
-		c = new GridBagConstraints();
-		c.anchor = GridBagConstraints.LINE_START;
-		c.gridx = 1;
-		c.gridy = 3;
-		c.gridwidth = 2;
-		mainPanel.add(scrollPane, c);
-
-		// Create the button to send the request
-		JButton sendButton = new JButton("Send");
-		sendButton.addActionListener(new ActionListener() {
+		// Add action listener to send button
+		clientFrame.getSendButton().addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent i) {
-				// Get the current messages
-				String type = (String) actionBox.getSelectedItem();
-				String word = wordField.getText();
-				String meaning = meaningField.getText();
-				String msg = type + "," + word + "," + meaning;
-
-				// Check message valid
-				if (word.length() == 0) { // empty
-					responseArea.setText(responseArea.getText() + "ERROR: Word cannot be empty\n");
-					return;
-				} else if (type.equals("add") && (meaning.length() == 0)) {
-					responseArea.setText(responseArea.getText() + "ERROR: Meaning cannot be empty for 'add' action\n");
-					return;
-				}
-
-				// Send the request to server and put response to text area
-				responseArea.setText(responseArea.getText() + sendRequest(msg) + "\n");
+				handleSendButton();
 			}
 		});
-		c = new GridBagConstraints();
-		c.anchor = GridBagConstraints.LINE_START;
-		c.fill = GridBagConstraints.BOTH;
-		c.gridheight = 3;
-		c.gridwidth = 2;
-		c.gridx = 2;
-		c.gridy = 0;
-		mainPanel.add(sendButton, c);
+		
+		clientFrame.addWindowListener(new WindowAdapter() {
+
+	        @Override
+	        public void windowClosing(WindowEvent arg0) {
+	        	closeSocket();
+	        }
+
+	    });
+
+	}
+	
+	private static void closeSocket() {
+		try {
+			// close connection and streams
+			in.close();
+			out.close();
+			clientSocket.close();
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
+	}
+	
+	private static void handleSendButton() {
+		// Get the current messages
+		String type = (String) clientFrame.getActionBox().getSelectedItem();
+		String word = clientFrame.getWordField().getText();
+		String meaning = clientFrame.getMeaningField().getText();
+		String msg = type + "," + word + "," + meaning;
+
+		// Check message valid
+		if (word.length() == 0) { // empty
+			clientFrame.getResponseArea().setText(clientFrame.getResponseArea().getText() + "ERROR: Word cannot be empty\n");
+			return;
+		} else if (type.equals("add") && (meaning.length() == 0)) {
+			clientFrame.getResponseArea().setText(clientFrame.getResponseArea().getText() + "ERROR: Meaning cannot be empty for 'add' action\n");
+			return;
+		}
+
+		// Send the request to server and put response to text area
+		clientFrame.getResponseArea().setText(clientFrame.getResponseArea().getText() + sendRequest(msg) + "\n");
 	}
 
+	/** Send request to server **/
 	private static String sendRequest(String msg) {
 		try {
 			// Send request to server
@@ -244,11 +110,16 @@ public class Client {
 			out.flush();
 
 			// Receive the reply from the server by reading from the socket input stream
-			String response = in.readLine(); // This method blocks until there is something to read from the input
-												// stream
+			String response = in.readLine(); // This method blocks until there is something to read
+												// from the input stream
+			
+			if (response == null) {  
+				throw new IOException();  // lost connection when waiting for response
+			}
 
 			return "Server: " + response;
 		} catch (UnsupportedEncodingException e) {
+			// should never get here
 			e.printStackTrace();
 		} catch (IOException e) {
 			// server closed, cannot send message
@@ -256,11 +127,23 @@ public class Client {
 		}
 		return "";
 	}
+	
+	
+	/** Connect to the server **/
+	private static void connectToServer() throws UnknownHostException, IOException {
+		// register a new client socket connect to server at the port
+		clientSocket = new Socket(ip, port);
 
+		// Get communication input/output streams associated with the socket
+		in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
+		out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
+	}
+
+	/** Read command line arguments **/
 	private static void readArgs(String[] args) throws Exception {
 		// Check number of arguments
 		if (args.length != 2) {
-			throw new Exception("Invalid number of arguments");
+			throw new Exception("Invalid number of arguments (NEED: IP & PORT)");
 		}
 
 		// Store the arguments to corresponding variables

@@ -1,4 +1,3 @@
-
 /* 
  * COMP90105 Distributed Systems - Assignment 1
  * Name: Pei-Yun Sun
@@ -7,19 +6,27 @@
 
 import java.net.*;
 import java.util.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.*;
 
 public class Server {
 
-	private static int port; // port number (from args)
-	private static String DICT_PATH; // path to the file containing initial dictionary data (from args)
-	private static int counter = 0; // number of clients connected
-	private static HashMap<String, String> dictionary; // the dictionary of the server
+	// variables
+	private static int port;
+	private static String DICT_PATH;
+	private static HashMap<String, String> dictionary;
 	private static Scanner scan = new Scanner(System.in);
-	private static boolean exitServer = false;  // Check if exiting the server, init as false
+	private static ServerFrame frame;
+	private static int clientNum;
 
+	// flag to ask child threads to exit
+	private static boolean exitServer = false;
+
+	/** Main method **/
 	public static void main(String args[]) throws IOException {
-
+		clientNum = 0;
+		
 		// Read command line arguments
 		try {
 			readArgs(args);
@@ -34,24 +41,30 @@ public class Server {
 		// register a new server socket to the port
 		ServerSocket serverSocket = new ServerSocket(port);
 
+		// Initialise GUI
+		frame = new ServerFrame();
+		
+		frame.updateTable(dictionary);
+		
+		// Add window listener to GUI
+		frame.addWindowListener(new WindowAdapter() {
+	        @Override
+	        public void windowClosing(WindowEvent arg0) {
+	        	exitServer();
+	        }
+
+	    });
+
 		// Thread to serve clients
 		Thread mainThread = new Thread(() -> serverMainThread(serverSocket));
 		mainThread.start();
-
-		// Check if exiting the server
-		while (true) {
-			String msg = null;
-			while ((msg = scan.nextLine()) != null) {
-				if (msg.equals("exit")) {
-					writeDictionaryFile();
-					System.out.println("Exit from the server...");
-					// close scanner
-					scan.close();
-					exitServer = true;  // inform the serve threads to stop
-					return;
-				}
-			}
-		}
+	}
+	
+	public static void exitServer() {
+		writeDictionaryFile();
+		// close scanner
+		scan.close();
+		exitServer = true; // inform the serve threads to stop
 	}
 
 	/**
@@ -64,8 +77,8 @@ public class Server {
 			Socket clientSocket;
 			try {
 				clientSocket = serverSocket.accept();
-				counter++;
-				System.out.println("Client " + counter + ": Applying for connection!");
+				clientNum++;
+				frame.updateClientNum(clientNum);
 
 				// Start a new thread to serve the client
 				// (lambda expression to implement runnable interface with a serveClient method)
@@ -125,7 +138,7 @@ public class Server {
 	private static void readArgs(String[] args) throws Exception {
 		// Check number of arguments
 		if (args.length != 2) {
-			throw new Exception("Invalid number of arguments");
+			throw new Exception("Invalid number of arguments (NEED: PORT & DICT_PATH)");
 		}
 
 		// Store the arguments to corresponding variables
@@ -141,7 +154,7 @@ public class Server {
 			// Get communication input/output streams associated with the client socket
 			BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
 			BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
-			
+
 			try {
 
 				String clientMsg = null;
@@ -160,7 +173,8 @@ public class Server {
 				in.close();
 				out.close();
 				clientSocket.close();
-				counter--;
+				clientNum--;
+				frame.updateClientNum(clientNum);
 			}
 
 		} catch (IOException e) {
@@ -183,16 +197,18 @@ public class Server {
 				return "ERROR: The word already exists in the dictionary";
 			}
 			dictionary.put(word, meaning);
+			frame.updateTable(dictionary);
 			return "Added word '" + word + "' successfully";
 		case "remove":
 			if (!dictionary.containsKey(word)) {
-				return "ERROR: Cannot find the '"+ word + "' in the dictionary";
+				return "ERROR: Cannot find the '" + word + "' in the dictionary";
 			}
 			dictionary.remove(word);
+			frame.updateTable(dictionary);
 			return "Removed word '" + word + "' successfully";
 		case "search":
 			if (!dictionary.containsKey(word)) {
-				return "ERROR: Cannot find the '"+ word + "' in the dictionary";
+				return "ERROR: Cannot find the '" + word + "' in the dictionary";
 			}
 			return "Meaning: " + dictionary.get(word); // return meaning
 		}
