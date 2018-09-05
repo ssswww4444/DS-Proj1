@@ -25,12 +25,17 @@ public class ServerFrame extends JFrame {
 	private static GraphicsDevice gs = ge.getDefaultScreenDevice();
 	private static GraphicsConfiguration gc = gs.getDefaultConfiguration();
 
-	/** Constructor **/
+	/**
+	 * Constructor
+	 */
 	ServerFrame() {
 		super(gc);
 		setFrame();
 	}
-
+	
+	/** 
+	 * Setting for frame and panels to frame
+	 */
 	private void setFrame() {
 		this.setTitle("Server GUI");
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -60,7 +65,9 @@ public class ServerFrame extends JFrame {
 
 	}
 	
-	/** Add UI Components to main panel **/
+	/** 
+	 * Add UI Components to main panel
+	 */
 	private void setMainPanel() {
 		// Constraints
 		GridBagConstraints c = new GridBagConstraints();
@@ -91,13 +98,20 @@ public class ServerFrame extends JFrame {
 
 	public void updateTable(HashMap<String, String> dictionary) {
 		DefaultTableModel model = new DefaultTableModel(
-				new String[] { "Word", "Meaning" }, 0);
+				new String[] { "Word", "Meaning" }, 0) {
+			@Override
+		    public boolean isCellEditable(int row, int column) {
+		       //all cells false
+		       return false;
+		    }
+		};
 		
 		for (String word: dictionary.keySet()) {
 			String meaning = dictionary.get(word);
 			model.addRow(new Object[] {word, meaning});
 		}
 		wordTable.setModel(model);
+		this.pack();
 	}
 
 	public void updateClientNum(int clientNum) {

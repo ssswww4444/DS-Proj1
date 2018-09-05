@@ -1,3 +1,4 @@
+
 /* 
  * COMP90105 Distributed Systems - Assignment 1
  * Name: Pei-Yun Sun
@@ -21,17 +22,20 @@ public class Server {
 	private static int clientNum;
 
 	// flag to ask child threads to exit
-	private static boolean exitServer = false;
+	private static boolean exitServer;
 
-	/** Main method **/
+	/**
+	 * Main method
+	 */
 	public static void main(String args[]) throws IOException {
 		clientNum = 0;
-		
+		exitServer = false;
+
 		// Read command line arguments
 		try {
 			readArgs(args);
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.out.println(e.getMessage());
 			return;
 		}
 
@@ -39,29 +43,50 @@ public class Server {
 		readDictionaryFile();
 
 		// register a new server socket to the port
-		ServerSocket serverSocket = new ServerSocket(port);
+		ServerSocket serverSocket;
+		try {
+			serverSocket = new ServerSocket(port);
+		} catch (BindException e) {
+			System.out.println("The port is already in use, try another port.");
+			return;
+		} catch (IllegalArgumentException e2) {
+			System.out.println("The port num is out of range, try another port num.");
+			return;
+		}
 
-		// Initialise GUI
-		frame = new ServerFrame();
-		
-		frame.updateTable(dictionary);
-		
-		// Add window listener to GUI
-		frame.addWindowListener(new WindowAdapter() {
-	        @Override
-	        public void windowClosing(WindowEvent arg0) {
-	        	exitServer();
-	        }
-
-	    });
+		setupGUI();
 
 		// Thread to serve clients
 		Thread mainThread = new Thread(() -> serverMainThread(serverSocket));
 		mainThread.start();
 	}
-	
+
+	/**
+	 * Setup Server GUI
+	 */
+	private static void setupGUI() {
+		// Initialise GUI
+		frame = new ServerFrame();
+
+		frame.updateTable(dictionary);
+
+		// Add window listener to GUI
+		frame.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent arg0) {
+				exitServer();
+			}
+
+		});
+	}
+
+	/**
+	 * Exit the server if GUI closed
+	 */
 	public static void exitServer() {
+		// Save current dictionary
 		writeDictionaryFile();
+
 		// close scanner
 		scan.close();
 		exitServer = true; // inform the serve threads to stop
@@ -95,23 +120,33 @@ public class Server {
 	 */
 	@SuppressWarnings("unchecked")
 	private static void readDictionaryFile() {
+		// Get the file
+		File f = new File(DICT_PATH);
+		if (!f.exists()) {
+			// no prior info of dict
+			dictionary = new HashMap<String, String>();
+			return;
+		}
+
 		try {
 			// get file input stream
 			FileInputStream fileIn = new FileInputStream(DICT_PATH);
 			ObjectInputStream in = new ObjectInputStream(fileIn);
 
-			// read dictionary object
-			try {
-				dictionary = (HashMap<String, String>) in.readObject();
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			}
+			// read dictionary object as HashMap
+			dictionary = (HashMap<String, String>) in.readObject();
 
 			// close streams
 			in.close();
 			fileIn.close();
+			
 		} catch (IOException e) {
+			// I/O error occurred
 			dictionary = new HashMap<String, String>();
+			return;
+		} catch (ClassNotFoundException e2) {
+			// Should never get here
+			System.out.println(e2.getMessage());
 		}
 	}
 
@@ -120,6 +155,12 @@ public class Server {
 	 */
 	private static void writeDictionaryFile() {
 		try {
+			// create a new file if not exist
+			File f = new File(DICT_PATH);
+			if (!f.exists()) {
+				f.createNewFile();
+			}
+			
 			// get file output stream
 			FileOutputStream fileOut = new FileOutputStream(DICT_PATH);
 			ObjectOutputStream out = new ObjectOutputStream(fileOut);
@@ -131,7 +172,8 @@ public class Server {
 			out.close();
 			fileOut.close();
 		} catch (IOException e) {
-			e.printStackTrace();
+			// Should never get here
+			System.out.println(e.getMessage());
 		}
 	}
 
@@ -141,9 +183,13 @@ public class Server {
 			throw new Exception("Invalid number of arguments (NEED: PORT & DICT_PATH)");
 		}
 
-		// Store the arguments to corresponding variables
-		port = Integer.parseInt(args[0]);
-		DICT_PATH = args[1];
+		try {
+			// Store the arguments to corresponding variables
+			port = Integer.parseInt(args[0]);
+			DICT_PATH = args[1];
+		} catch (Exception e) {
+			throw new Exception("ERROR: Invalid argument types (NEED: PORT & DICT_PATH");
+		}
 	}
 
 	/**
@@ -155,27 +201,22 @@ public class Server {
 			BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
 			BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
 
-			try {
+			String clientMsg = null;
 
-				String clientMsg = null;
-
-				// Keep reading the client's message
-				while (!exitServer && ((clientMsg = in.readLine()) != null)) {
-					out.write(accessDictionary(clientMsg) + "\n"); // send response to the client
-					out.flush();
-				}
-
-			} catch (SocketException e) {
-				// client socket closed
-			} finally {
-				System.out.println("client socket closed...");
-				// close streams and client socket
-				in.close();
-				out.close();
-				clientSocket.close();
-				clientNum--;
-				frame.updateClientNum(clientNum);
+			// Keep reading the client's message
+			while ((clientMsg = in.readLine()) != null) {
+				out.write(accessDictionary(clientMsg) + "\n"); // send response to the client
+				out.flush();
 			}
+
+			System.out.println("client socket closed...");
+
+			// close streams and client socket
+			in.close();
+			out.close();
+			clientSocket.close();
+			clientNum--;
+			frame.updateClientNum(clientNum);
 
 		} catch (IOException e) {
 			e.printStackTrace();

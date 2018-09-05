@@ -153,6 +153,13 @@ public class ClientFrame extends JFrame {
 		responsePanel.add(scrollPane, c);
 	}
 	
+	/**
+	 * Show message in GUI
+	 */
+	public void showMessage(String msg) {
+		responseArea.setText(responseArea.getText() + msg);
+	}
+	
 	/** Getters **/
 	public JButton getSendButton() {
 		return sendButton;

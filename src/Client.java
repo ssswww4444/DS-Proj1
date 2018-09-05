@@ -24,65 +24,90 @@ public class Client {
 	// Streams
 	private static BufferedReader in;
 	private static BufferedWriter out;
-	
+
 	// Frame
 	private static ClientFrame clientFrame;
 
-	/** Main method **/
+	/**
+	 * Main method
+	 */
 	public static void main(String args[]) throws IOException {
-
 		// Read command line arguments
 		try {
 			readArgs(args);
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.out.println(e.getMessage());
 			return;
 		}
 
 		// Connect to server
 		try {
-			connectToServer();
-		} catch (UnknownHostException e) {
-			System.out.println("Unknown host, try another ip & port");
+			// register a new client socket connect to server at the port
+			clientSocket = new Socket(ip, port);
+		} catch (UnknownHostException | NoRouteToHostException e) {
+			System.out.println("Unknown host (try other ip or port)");
 			return;
-		} catch (IOException e2) {
-			e2.printStackTrace();
+		} catch (ConnectException e2) {
+			System.out.println("Connection refused (no server at the port)");
 			return;
 		}
 
+		// Get communication I/O streams associated with the socket
+		try {
+			in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
+			out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
+		} catch (IOException e2) {
+			System.out.println("Failed to get I/O streams");
+			return;
+		}
+
+		// Setup the client GUI
+		setupGUI();
+
+	}
+
+	/**
+	 * Setup the client GUI
+	 */
+	private static void setupGUI() {
 		// Create client frame
 		clientFrame = new ClientFrame();
-		
+
 		// Add action listener to send button
 		clientFrame.getSendButton().addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent i) {
 				handleSendButton();
 			}
 		});
-		
+
+		// Add listener to GUI window
 		clientFrame.addWindowListener(new WindowAdapter() {
 
-	        @Override
-	        public void windowClosing(WindowEvent arg0) {
-	        	closeSocket();
-	        }
+			@Override
+			public void windowClosing(WindowEvent arg0) {
+				closeSocket();
+			}
 
-	    });
-
+		});
 	}
-	
+
+	/**
+	 * Close the client socket when lost connection to server
+	 */
 	private static void closeSocket() {
 		try {
-			// close connection and streams
 			in.close();
 			out.close();
 			clientSocket.close();
-		} catch (IOException ex) {
-			ex.printStackTrace();
+		} catch (IOException e) {
+			System.out.println(e.getMessage());
 		}
 	}
-	
+
 	private static void handleSendButton() {
+		// disable button until get response
+		clientFrame.getSendButton().setEnabled(false);
+
 		// Get the current messages
 		String type = (String) clientFrame.getActionBox().getSelectedItem();
 		String word = clientFrame.getWordField().getText();
@@ -91,63 +116,54 @@ public class Client {
 
 		// Check message valid
 		if (word.length() == 0) { // empty
-			clientFrame.getResponseArea().setText(clientFrame.getResponseArea().getText() + "ERROR: Word cannot be empty\n");
+			clientFrame.showMessage("ERROR: Word cannot be empty\n");
 			return;
 		} else if (type.equals("add") && (meaning.length() == 0)) {
-			clientFrame.getResponseArea().setText(clientFrame.getResponseArea().getText() + "ERROR: Meaning cannot be empty for 'add' action\n");
+			clientFrame.showMessage("ERROR: Meaning cannot be empty for 'add' action\n");
 			return;
 		}
 
 		// Send the request to server and put response to text area
-		clientFrame.getResponseArea().setText(clientFrame.getResponseArea().getText() + sendRequest(msg) + "\n");
+		clientFrame.showMessage(sendRequest(msg) + "\n");
+
+		// enable button after get response
+		clientFrame.getSendButton().setEnabled(true);
 	}
 
-	/** Send request to server **/
+	/** 
+	 * Send request to server and get response
+	 */
 	private static String sendRequest(String msg) {
 		try {
 			// Send request to server
 			out.write(msg + "\n");
 			out.flush();
 
-			// Receive the reply from the server by reading from the socket input stream
+			// Receive the response from the server by reading from the socket input stream
 			String response = in.readLine(); // This method blocks until there is something to read
 												// from the input stream
-			
-			if (response == null) {  
-				throw new IOException();  // lost connection when waiting for response
-			}
-
 			return "Server: " + response;
-		} catch (UnsupportedEncodingException e) {
-			// should never get here
-			e.printStackTrace();
 		} catch (IOException e) {
 			// server closed, cannot send message
 			return "Lost connection to server...";
 		}
-		return "";
-	}
-	
-	
-	/** Connect to the server **/
-	private static void connectToServer() throws UnknownHostException, IOException {
-		// register a new client socket connect to server at the port
-		clientSocket = new Socket(ip, port);
-
-		// Get communication input/output streams associated with the socket
-		in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
-		out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
 	}
 
-	/** Read command line arguments **/
+	/** 
+	 * Read command line arguments
+	 */
 	private static void readArgs(String[] args) throws Exception {
 		// Check number of arguments
 		if (args.length != 2) {
 			throw new Exception("Invalid number of arguments (NEED: IP & PORT)");
 		}
 
-		// Store the arguments to corresponding variables
-		ip = args[0];
-		port = Integer.parseInt(args[1]);
+		try {
+			// Store the arguments to corresponding variables
+			ip = args[0];
+			port = Integer.parseInt(args[1]);
+		} catch (Exception e) {
+			throw new Exception("Invalid argument types (NEED: IP & PORT)");
+		}
 	}
 }
