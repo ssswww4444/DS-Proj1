@@ -11,7 +11,7 @@
       <operations public="true" package="true" protected="true" private="true" static="true"/>    
     </display>  
   </class>  
-  <class id="2" language="java" name="ClientFrame" project="DS-Proj1" file="/DS-Proj1/src/ClientFrame.java" 
+  <class id="2" language="java" name="ClientFrame" project="DS-Proj1" file="/DS-Client/src/ClientFrame.java" 
     binary="false" corner="BOTTOM_RIGHT">    
     <position height="-1" width="-1" x="551" y="645"/>    
     <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
@@ -39,27 +39,27 @@
     </display>  
   </class>  
   <association id="5">    
-    <end type="SOURCE" refId="1" navigable="false">      
-      <attribute id="6" name="clientFrame">        
-        <position height="0" width="0" x="337" y="340"/>      
-      </attribute>      
-      <multiplicity id="7" minimum="0" maximum="1">        
-        <position height="0" width="0" x="337" y="340"/>      
-      </multiplicity>    
-    </end>    
-    <end type="TARGET" refId="2" navigable="true"/>    
-    <display labels="true" multiplicity="true"/>  
-  </association>  
-  <association id="8">    
     <end type="SOURCE" refId="3" navigable="false">      
-      <attribute id="9" name="frame">        
+      <attribute id="6" name="frame">        
         <position height="0" width="0" x="-326" y="244"/>      
       </attribute>      
-      <multiplicity id="10" minimum="0" maximum="1">        
+      <multiplicity id="7" minimum="0" maximum="1">        
         <position height="0" width="0" x="-326" y="244"/>      
       </multiplicity>    
     </end>    
     <end type="TARGET" refId="4" navigable="true"/>    
+    <display labels="true" multiplicity="true"/>  
+  </association>  
+  <association id="8">    
+    <end type="SOURCE" refId="1" navigable="false">      
+      <attribute id="9" name="clientFrame">        
+        <position height="0" width="0" x="337" y="340"/>      
+      </attribute>      
+      <multiplicity id="10" minimum="0" maximum="1">        
+        <position height="0" width="0" x="337" y="340"/>      
+      </multiplicity>    
+    </end>    
+    <end type="TARGET" refId="2" navigable="true"/>    
     <display labels="true" multiplicity="true"/>  
   </association>  
   <classifier-display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 

@@ -110,7 +110,8 @@ public class Server {
 				Thread t = new Thread(() -> serveClient(clientSocket)); // (lambda parameter -> lambda body)
 				t.start();
 			} catch (IOException e) {
-				e.printStackTrace();
+				// failed to accept
+				System.out.println(e.getMessage());
 			}
 		}
 	}
@@ -204,12 +205,14 @@ public class Server {
 			String clientMsg = null;
 
 			// Keep reading the client's message
-			while ((clientMsg = in.readLine()) != null) {
+			while (!exitServer && (clientMsg = in.readLine()) != null) {    // will read null if socket closed at client side
 				out.write(accessDictionary(clientMsg) + "\n"); // send response to the client
 				out.flush();
 			}
+			
+			System.out.println("askdjaskdjaskdjakldjklajsd");
 
-			System.out.println("client socket closed...");
+//			System.out.println("client socket closed...");
 
 			// close streams and client socket
 			in.close();
@@ -219,7 +222,7 @@ public class Server {
 			frame.updateClientNum(clientNum);
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println("dddd");
 		}
 	}
 

@@ -4,13 +4,11 @@
  * Student ID: 667816
  */
 
+import java.awt.BorderLayout;
 import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.util.HashMap;
-
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -40,16 +38,9 @@ public class ServerFrame extends JFrame {
 		this.setTitle("Server GUI");
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		// Set layout
-		this.setLayout(new GridBagLayout());
-
-		// Constraints
-		GridBagConstraints c = new GridBagConstraints();
-
 		// Main panel of the window
-		c.gridx = 0;
-		c.gridy = 0;
-		this.add(mainPanel);
+		getContentPane().setLayout(new BorderLayout(0, 0));
+		getContentPane().add(mainPanel);
 		setMainPanel();
 
 		// resize the frame
@@ -69,31 +60,16 @@ public class ServerFrame extends JFrame {
 	 * Add UI Components to main panel
 	 */
 	private void setMainPanel() {
-		// Constraints
-		GridBagConstraints c = new GridBagConstraints();
-
-		// Add the client label
-		c.anchor = GridBagConstraints.LINE_END;
-		c.gridx = 0;
-		c.gridy = 0;
-		mainPanel.add(clientLabel, c);
-
-		// Add the clientNum label
-		c = new GridBagConstraints();
-		c.anchor = GridBagConstraints.LINE_START;
-		c.gridx = 1;
-		c.gridy = 0;
-		mainPanel.add(clientNumLabel, c);
+		mainPanel.setLayout(new BorderLayout(0, 0));
+		mainPanel.add(contentPanel);
+		contentPanel.setLayout(new BorderLayout(0, 0));
 
 		// Add the table
 		JScrollPane tableSP = new JScrollPane(wordTable);
-		c = new GridBagConstraints();
-		c.anchor = GridBagConstraints.CENTER;
-		c.gridx = 0;
-		c.gridwidth = 3;
-		c.gridheight = 3;
-		c.gridy = 1;
-		mainPanel.add(tableSP, c);
+		contentPanel.add(tableSP, BorderLayout.CENTER);
+		mainPanel.add(northPanel, BorderLayout.NORTH);
+		northPanel.add(clientLabel);
+		northPanel.add(clientNumLabel);
 	}
 
 	public void updateTable(HashMap<String, String> dictionary) {
@@ -119,11 +95,13 @@ public class ServerFrame extends JFrame {
 	}
 
 	// Panels
-	private JPanel mainPanel = new JPanel(new GridBagLayout());
+	private JPanel mainPanel = new JPanel();
 
 	// UI Components
 	private JTable wordTable = new JTable();
 	private JLabel clientLabel = new JLabel("Number of clients connected: ");
 	private JLabel clientNumLabel = new JLabel("0");
+	private final JPanel contentPanel = new JPanel();
+	private final JPanel northPanel = new JPanel();
 
 }
